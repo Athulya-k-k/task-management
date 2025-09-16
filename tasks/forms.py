@@ -1,0 +1,96 @@
+from django import forms
+from django.contrib.auth.forms import UserCreationForm as BaseUserCreationForm
+from .models import User, Task
+
+class UserCreationForm(BaseUserCreationForm):
+    email = forms.EmailField(required=True)
+    first_name = forms.CharField(max_length=30, required=True)
+    last_name = forms.CharField(max_length=30, required=True)
+    role = forms.ChoiceField(choices=[('user', 'User'), ('admin', 'Admin')], required=True)
+    assigned_admin = forms.ModelChoiceField(
+        queryset=User.objects.filter(role='admin'), 
+        required=False,
+        help_text="Only required for users"
+    )
+
+    class Meta:
+        model = User
+        fields = ('username', 'email', 'first_name', 'last_name', 'password1', 'password2', 'role', 'assigned_admin')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['username'].widget.attrs.update({'class': 'form-control'})
+        self.fields['email'].widget.attrs.update({'class': 'form-control'})
+        self.fields['first_name'].widget.attrs.update({'class': 'form-control'})
+        self.fields['last_name'].widget.attrs.update({'class': 'form-control'})
+        self.fields['password1'].widget.attrs.update({'class': 'form-control'})
+        self.fields['password2'].widget.attrs.update({'class': 'form-control'})
+        self.fields['role'].widget.attrs.update({'class': 'form-control'})
+        self.fields['assigned_admin'].widget.attrs.update({'class': 'form-control'})
+
+    def clean(self):
+        cleaned_data = super().clean()
+        role = cleaned_data.get('role')
+        assigned_admin = cleaned_data.get('assigned_admin')
+
+        if role == 'user' and not assigned_admin:
+            raise forms.ValidationError("Users must be assigned to an admin")
+        
+        if role == 'admin' and assigned_admin:
+            cleaned_data['assigned_admin'] = None
+
+        return cleaned_data
+
+class TaskForm(forms.ModelForm):
+    class Meta:
+        model = Task
+        fields = ['title', 'description', 'assigned_to', 'due_date', 'status']
+        widgets = {
+            'title': forms.TextInput(attrs={'class': 'form-control'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
+            'assigned_to': forms.Select(attrs={'class': 'form-control'}),
+            'due_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'status': forms.Select(attrs={'class': 'form-control'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        
+        if user:
+            if user.is_superadmin():
+                # SuperAdmin can assign tasks to any user
+                self.fields['assigned_to'].queryset = User.objects.filter(role='user')
+            elif user.is_admin():
+                # Admin can only assign tasks to their assigned users
+                self.fields['assigned_to'].queryset = User.objects.filter(assigned_admin=user)
+
+class TaskCompletionForm(forms.ModelForm):
+    class Meta:
+        model = Task
+        fields = ['completion_report', 'worked_hours']
+        widgets = {
+            'completion_report': forms.Textarea(attrs={
+                'class': 'form-control', 
+                'rows': 5, 
+                'placeholder': 'Describe what was accomplished, challenges faced, etc.'
+            }),
+            'worked_hours': forms.NumberInput(attrs={
+                'class': 'form-control', 
+                'step': '0.5', 
+                'min': '0',
+                'placeholder': 'e.g. 8.5'
+            }),
+        }
+
+    def clean_completion_report(self):
+        completion_report = self.cleaned_data.get('completion_report')
+        if not completion_report or len(completion_report.strip()) < 10:
+            raise forms.ValidationError("Completion report must be at least 10 characters long")
+        return completion_report
+
+    def clean_worked_hours(self):
+        worked_hours = self.cleaned_data.get('worked_hours')
+        if worked_hours is None or worked_hours <= 0:
+            raise forms.ValidationError("Worked hours must be greater than 0")
+        return worked_hours

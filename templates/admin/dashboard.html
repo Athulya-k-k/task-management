@@ -1,0 +1,188 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Dashboard - Task Management System{% endblock %}
+
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stats-card">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-uppercase mb-1">Total Users</div>
+                        <div class="h5 mb-0 font-weight-bold">{{ user_count }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-users fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if user.is_superadmin %}
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stats-card warning">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-uppercase mb-1">Total Admins</div>
+                        <div class="h5 mb-0 font-weight-bold">{{ admin_count }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-user-shield fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stats-card info">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-uppercase mb-1">Total Tasks</div>
+                        <div class="h5 mb-0 font-weight-bold">{{ total_tasks }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-tasks fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stats-card success">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-uppercase mb-1">Completed Tasks</div>
+                        <div class="h5 mb-0 font-weight-bold">{{ completed_tasks }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-check-circle fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-info-circle me-2"></i>System Overview
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <strong>Your Role:</strong> 
+                    <span class="badge bg-primary">{{ user.get_role_display }}</span>
+                </div>
+                
+                {% if user.is_superadmin %}
+                <div class="mb-3">
+                    <i class="fas fa-crown text-warning me-2"></i>
+                    <strong>SuperAdmin Privileges:</strong>
+                    <ul class="mt-2">
+                        <li>Manage all users and admins</li>
+                        <li>View and manage all tasks</li>
+                        <li>Access all task reports</li>
+                        <li>Full system administration</li>
+                    </ul>
+                </div>
+                {% elif user.is_admin %}
+                <div class="mb-3">
+                    <i class="fas fa-shield-alt text-info me-2"></i>
+                    <strong>Admin Privileges:</strong>
+                    <ul class="mt-2">
+                        <li>Assign tasks to your users</li>
+                        <li>View tasks you created</li>
+                        <li>Access completion reports</li>
+                        <li>Manage assigned users' tasks</li>
+                    </ul>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-chart-pie me-2"></i>Quick Stats
+                </h6>
+            </div>
+            <div class="card-body">
+                {% if total_tasks > 0 %}
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <span>Completion Rate:</span>
+                        <strong>{{ completed_tasks|floatformat:0 }}/{{ total_tasks }}</strong>
+                    </div>
+                    <div class="progress mt-2">
+                        {% widthratio completed_tasks total_tasks 100 as completion_percentage %}
+                        <div class="progress-bar bg-success" style="width: {{ completion_percentage }}%"></div>
+                    </div>
+                    <small class="text-muted">{{ completion_percentage|floatformat:1 }}% tasks completed</small>
+                </div>
+                {% else %}
+                <div class="text-center text-muted">
+                    <i class="fas fa-tasks fa-3x mb-3"></i>
+                    <p>No tasks created yet</p>
+                    <a href="{% url 'manage_tasks' %}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Create First Task
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-rocket me-2"></i>Quick Actions
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% if user.is_superadmin %}
+                    <div class="col-md-4 mb-3">
+                        <a href="{% url 'manage_users' %}" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-users fa-2x mb-2 d-block"></i>
+                            Manage Users
+                        </a>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="col-md-4 mb-3">
+                        <a href="{% url 'manage_tasks' %}" class="btn btn-outline-success w-100">
+                            <i class="fas fa-tasks fa-2x mb-2 d-block"></i>
+                            Manage Tasks
+                        </a>
+                    </div>
+                    
+                    <div class="col-md-4 mb-3">
+                        <a href="{% url 'task_reports' %}" class="btn btn-outline-info w-100">
+                            <i class="fas fa-chart-bar fa-2x mb-2 d-block"></i>
+                            View Reports
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,161 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Complete Task - {{ task.title }}{% endblock %}
+
+{% block page_title %}Complete Task{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'view_task' task.id %}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left me-2"></i>Back to Task
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-check-circle me-2"></i>Mark Task as Completed
+                </h5>
+            </div>
+            <div class="card-body">
+                <!-- Task Summary -->
+                <div class="alert alert-info">
+                    <h6><i class="fas fa-info-circle me-2"></i>Task Summary</h6>
+                    <p><strong>Title:</strong> {{ task.title }}</p>
+                    <p><strong>Description:</strong> {{ task.description }}</p>
+                    <p class="mb-0"><strong>Due Date:</strong> {{ task.due_date|date:"F d, Y" }}</p>
+                </div>
+
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-4">
+                        <label for="{{ form.worked_hours.id_for_label }}" class="form-label">
+                            <i class="fas fa-clock me-2"></i>Hours Worked <span class="text-danger">*</span>
+                        </label>
+                        {{ form.worked_hours }}
+                        {% if form.worked_hours.errors %}
+                            <div class="text-danger mt-1">{{ form.worked_hours.errors.0 }}</div>
+                        {% endif %}
+                        <div class="form-text">
+                            Enter the total number of hours spent working on this task (e.g., 8.5 for 8 hours and 30 minutes)
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="{{ form.completion_report.id_for_label }}" class="form-label">
+                            <i class="fas fa-file-alt me-2"></i>Completion Report <span class="text-danger">*</span>
+                        </label>
+                        {{ form.completion_report }}
+                        {% if form.completion_report.errors %}
+                            <div class="text-danger mt-1">{{ form.completion_report.errors.0 }}</div>
+                        {% endif %}
+                        <div class="form-text">
+                            Please provide a detailed report of what was accomplished, any challenges faced, 
+                            solutions implemented, and other relevant details about the task completion.
+                        </div>
+                    </div>
+
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Important:</strong> Once you mark this task as completed, the status cannot be changed back. 
+                        Please ensure all information is accurate before submitting.
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% url 'view_task' task.id %}" class="btn btn-outline-secondary me-md-2">
+                            <i class="fas fa-times me-2"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-check me-2"></i>Complete Task
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Guidelines Card -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-lightbulb me-2"></i>Completion Report Guidelines
+                </h6>
+            </div>
+            <div class="card-body">
+                <p class="mb-2"><strong>What to include in your completion report:</strong></p>
+                <ul class="mb-3">
+                    <li><strong>Accomplishments:</strong> What was successfully completed</li>
+                    <li><strong>Methodology:</strong> How you approached the task</li>
+                    <li><strong>Challenges:</strong> Any obstacles you encountered</li>
+                    <li><strong>Solutions:</strong> How you overcame the challenges</li>
+                    <li><strong>Deliverables:</strong> What was produced or delivered</li>
+                    <li><strong>Next Steps:</strong> Any follow-up actions needed (if applicable)</li>
+                </ul>
+                
+                <div class="alert alert-light">
+                    <small>
+                        <i class="fas fa-tip me-1"></i>
+                        <strong>Tip:</strong> A good completion report helps with project tracking, 
+                        knowledge sharing, and provides valuable insights for future similar tasks.
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Character counter for completion report
+document.addEventListener('DOMContentLoaded', function() {
+    const textArea = document.getElementById('id_completion_report');
+    if (textArea) {
+        const counter = document.createElement('small');
+        counter.className = 'text-muted float-end';
+        counter.id = 'char-counter';
+        textArea.parentNode.appendChild(counter);
+        
+        function updateCounter() {
+            const length = textArea.value.length;
+            counter.textContent = `${length} characters`;
+            
+            if (length < 10) {
+                counter.className = 'text-danger float-end';
+            } else if (length < 50) {
+                counter.className = 'text-warning float-end';
+            } else {
+                counter.className = 'text-success float-end';
+            }
+        }
+        
+        textArea.addEventListener('input', updateCounter);
+        updateCounter(); // Initial count
+    }
+});
+
+// Validate form before submission
+document.querySelector('form').addEventListener('submit', function(e) {
+    const workedHours = document.getElementById('id_worked_hours').value;
+    const completionReport = document.getElementById('id_completion_report').value;
+    
+    if (!workedHours || parseFloat(workedHours) <= 0) {
+        e.preventDefault();
+        alert('Please enter valid worked hours (greater than 0).');
+        return;
+    }
+    
+    if (!completionReport || completionReport.trim().length < 10) {
+        e.preventDefault();
+        alert('Please provide a completion report with at least 10 characters.');
+        return;
+    }
+    
+    if (!confirm('Are you sure you want to mark this task as completed? This action cannot be undone.')) {
+        e.preventDefault();
+    }
+});
+</script>
+{% endblock %}
