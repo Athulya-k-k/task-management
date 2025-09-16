@@ -8,6 +8,7 @@ from .serializers import (
     UserSerializer, LoginSerializer, TaskSerializer, 
     TaskUpdateSerializer, TaskReportSerializer
 )
+from django.contrib.auth import authenticate
 
 class IsAdminOrSuperAdmin(permissions.BasePermission):
     """
@@ -16,20 +17,7 @@ class IsAdminOrSuperAdmin(permissions.BasePermission):
     def has_permission(self, request, view):
         return request.user.is_authenticated and (request.user.is_admin() or request.user.is_superadmin())
 
-@api_view(['POST'])
-@permission_classes([permissions.AllowAny])
-def login(request):
-    serializer = LoginSerializer(data=request.data)
-    if serializer.is_valid():
-        user = serializer.validated_data['user']
-        refresh = RefreshToken.for_user(user)
-        
-        return Response({
-            'refresh': str(refresh),
-            'access': str(refresh.access_token),
-            'user': UserSerializer(user).data
-        })
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])

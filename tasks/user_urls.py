@@ -5,10 +5,9 @@ urlpatterns = [
     # Main user interface (SPA)
     path('', user_views.user_tasks, name='user_tasks'),
     path('app/', user_views.user_tasks, name='user_tasks_app'),
-    
-    # Authentication
-    path('login/', user_views.user_login, name='user_login'),
-    path('logout/', user_views.user_logout, name='user_logout'),
+
+    path('api/login/', user_views.api_login, name='api_login'),
+    path('api/logout/', user_views.api_logout, name='user_logout'),
     
     # Dashboard and main views
     path('dashboard/', user_views.user_dashboard, name='user_dashboard'),
