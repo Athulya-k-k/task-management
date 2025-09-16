@@ -73,8 +73,53 @@ def user_tasks(request):
 
 @jwt_required
 def user_dashboard(request):
-    return render(request, "user/dashboard.html")
-
+    """User dashboard with statistics and recent tasks"""
+    if not request.user.is_user():
+        messages.error(request, 'Access denied')
+        return redirect('/api/login/')
+    
+    # Get user's tasks
+    user_tasks = Task.objects.filter(assigned_to=request.user)
+    
+    # Calculate statistics
+    total_tasks = user_tasks.count()
+    pending_tasks = user_tasks.filter(status='pending').count()
+    in_progress_tasks = user_tasks.filter(status='in_progress').count()
+    completed_tasks = user_tasks.filter(status='completed').count()
+    
+    # Calculate completion rate
+    if total_tasks > 0:
+        completion_rate = (completed_tasks / total_tasks) * 100
+    else:
+        completion_rate = 0
+    
+    # Get recent tasks (last 5)
+    recent_tasks = user_tasks.order_by('-created_at')[:5]
+    
+    # Calculate total hours worked
+    total_hours_worked = sum(task.worked_hours or 0 for task in user_tasks.filter(status='completed'))
+    
+    # Get overdue tasks
+    overdue_tasks = user_tasks.filter(
+        due_date__lt=date.today(),
+        status__in=['pending', 'in_progress']
+    ).count()
+    
+    # Pass everything to template
+    context = {
+        'user': request.user,
+        'total_tasks': total_tasks,
+        'pending_tasks': pending_tasks,
+        'in_progress_tasks': in_progress_tasks,
+        'completed_tasks': completed_tasks,
+        'recent_tasks': recent_tasks,
+        'total_hours_worked': total_hours_worked,
+        'overdue_tasks': overdue_tasks,
+        'today': date.today(),
+        'completion_rate': completion_rate,  # now calculated
+    }
+    
+    return render(request, "user/dashboard.html", context)
 
 # -----------------------------
 # TASK VIEWS

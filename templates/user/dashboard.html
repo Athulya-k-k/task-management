@@ -39,6 +39,10 @@
             border-radius: 10px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             margin-bottom: 1rem;
+            transition: transform 0.3s ease;
+        }
+        .task-card:hover {
+            transform: translateY(-2px);
         }
         .btn-gradient {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -48,6 +52,17 @@
         .btn-gradient:hover {
             background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
             color: white;
+        }
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 15px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        .stats-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin: 0.5rem 0;
         }
     </style>
 </head>
@@ -72,33 +87,43 @@
         </div>
 
         <div class="p-4">
+            <!-- Display messages if any -->
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+
             <!-- Stats Section -->
             <div class="row">
                 <div class="col-md-3 mb-3">
                     <div class="stats-card" style="background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%); color: white;">
                         <i class="fas fa-tasks fa-2x mb-2"></i>
-                        <h4>{{ total_tasks }}</h4>
+                        <div class="stats-number">{{ total_tasks }}</div>
                         <p class="mb-0">Total Tasks</p>
                     </div>
                 </div>
                 <div class="col-md-3 mb-3">
                     <div class="stats-card" style="background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%); color: #333;">
                         <i class="fas fa-clock fa-2x mb-2"></i>
-                        <h4>{{ pending_tasks }}</h4>
+                        <div class="stats-number">{{ pending_tasks }}</div>
                         <p class="mb-0">Pending</p>
                     </div>
                 </div>
                 <div class="col-md-3 mb-3">
                     <div class="stats-card" style="background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); color: #333;">
                         <i class="fas fa-spinner fa-2x mb-2"></i>
-                        <h4>{{ in_progress_tasks }}</h4>
+                        <div class="stats-number">{{ in_progress_tasks }}</div>
                         <p class="mb-0">In Progress</p>
                     </div>
                 </div>
                 <div class="col-md-3 mb-3">
                     <div class="stats-card" style="background: linear-gradient(135deg, #d299c2 0%, #fef9d7 100%); color: #333;">
                         <i class="fas fa-check-circle fa-2x mb-2"></i>
-                        <h4>{{ completed_tasks }}</h4>
+                        <div class="stats-number">{{ completed_tasks }}</div>
                         <p class="mb-0">Completed</p>
                     </div>
                 </div>
@@ -121,6 +146,9 @@
                                 <div class="col-md-3 mb-2">
                                     <a href="{% url 'user_task_list' %}?status=pending" class="btn btn-outline-warning w-100">
                                         <i class="fas fa-clock me-2"></i>Pending Tasks
+                                        {% if pending_tasks %}
+                                            <span class="badge bg-warning text-dark ms-1">{{ pending_tasks }}</span>
+                                        {% endif %}
                                     </a>
                                 </div>
                                 <div class="col-md-3 mb-2">
@@ -134,10 +162,44 @@
                                     </a>
                                 </div>
                             </div>
+                            {% if overdue_tasks %}
+                            <div class="row mt-2">
+                                <div class="col-md-3 mb-2">
+                                    <a href="{% url 'user_task_list' %}?overdue=true" class="btn btn-outline-danger w-100">
+                                        <i class="fas fa-exclamation-triangle me-2"></i>Overdue Tasks
+                                        <span class="badge bg-danger ms-1">{{ overdue_tasks }}</span>
+                                    </a>
+                                </div>
+                            </div>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
             </div>
+
+            <!-- Additional Stats -->
+            {% if total_hours_worked %}
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <i class="fas fa-clock fa-2x text-primary mb-3"></i>
+                            <h4>{{ total_hours_worked }} Hours</h4>
+                            <p class="text-muted mb-0">Total Hours Worked</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <i class="fas fa-percentage fa-2x text-success mb-3"></i>
+                            <h4>{{ completion_rate|floatformat:1 }}%</h4>
+                            <p class="text-muted mb-0">Completion Rate</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
 
             <!-- Recent Tasks -->
             {% if recent_tasks %}
@@ -154,23 +216,36 @@
                                 <div class="card-body">
                                     <div class="row align-items-center">
                                         <div class="col-md-6">
-                                            <h6 class="mb-1">{{ task.title }}</h6>
+                                            <h6 class="mb-1">
+                                                <a href="{% url 'user_task_detail' task.id %}" class="text-decoration-none">
+                                                    {{ task.title }}
+                                                </a>
+                                            </h6>
                                             <p class="text-muted mb-0">{{ task.description|truncatechars:80 }}</p>
                                         </div>
                                         <div class="col-md-3">
                                             <small class="text-muted">
                                                 <i class="fas fa-calendar me-1"></i>
                                                 Due: {{ task.due_date|date:"M d, Y" }}
+                                                {% if task.due_date < today and task.status != 'completed' %}
+                                                    <span class="badge bg-danger ms-1">Overdue</span>
+                                                {% endif %}
                                             </small>
                                         </div>
                                         <div class="col-md-3">
                                             <div class="d-flex justify-content-between align-items-center">
                                                 {% if task.status == 'pending' %}
-                                                    <span class="badge bg-warning">Pending</span>
+                                                    <span class="status-badge bg-warning text-dark">
+                                                        <i class="fas fa-clock me-1"></i>Pending
+                                                    </span>
                                                 {% elif task.status == 'in_progress' %}
-                                                    <span class="badge bg-primary">In Progress</span>
+                                                    <span class="status-badge bg-primary text-white">
+                                                        <i class="fas fa-spinner me-1"></i>In Progress
+                                                    </span>
                                                 {% else %}
-                                                    <span class="badge bg-success">Completed</span>
+                                                    <span class="status-badge bg-success text-white">
+                                                        <i class="fas fa-check-circle me-1"></i>Completed
+                                                    </span>
                                                 {% endif %}
                                                 <a href="{% url 'user_task_detail' task.id %}" class="btn btn-sm btn-outline-primary">
                                                     <i class="fas fa-eye"></i>
@@ -189,8 +264,9 @@
             <div class="row">
                 <div class="col-md-12">
                     <div class="alert alert-info text-center">
-                        <i class="fas fa-info-circle me-2"></i>
-                        No tasks assigned yet. Check back later!
+                        <i class="fas fa-info-circle fa-2x mb-3"></i>
+                        <h4>No tasks assigned yet</h4>
+                        <p class="mb-0">You don't have any tasks assigned at the moment. Check back later!</p>
                     </div>
                 </div>
             </div>
@@ -199,5 +275,20 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Add some interactivity
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add hover effects to stats cards
+            const statsCards = document.querySelectorAll('.stats-card');
+            statsCards.forEach(card => {
+                card.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-5px) scale(1.02)';
+                });
+                card.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0) scale(1)';
+                });
+            });
+        });
+    </script>
 </body>
 </html>
