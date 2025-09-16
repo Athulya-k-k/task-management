@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Detail - {{ task.title }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .main-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            margin: 20px auto;
+            max-width: 900px;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 15px 15px 0 0;
+        }
+        .btn-gradient {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+        }
+        .btn-gradient:hover {
+            background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+            color: white;
+        }
+        .task-info {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .status-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2><i class="fas fa-tasks me-3"></i>Task Details</h2>
+                    <p class="mb-0">{{ task.title }}</p>
+                </div>
+                <div>
+                    <a href="{% url 'user_task_list' %}" class="btn btn-outline-light">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Tasks
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-4">
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <!-- Task Information -->
+            <div class="task-info">
+                <div class="row">
+                    <div class="col-md-8">
+                        <h3>{{ task.title }}</h3>
+                        <p class="text-muted">{{ task.description }}</p>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        {% if task.status == 'pending' %}
+                            <span class="status-badge bg-warning text-dark">
+                                <i class="fas fa-clock me-1"></i>Pending
+                            </span>
+                        {% elif task.status == 'in_progress' %}
+                            <span class="status-badge bg-primary text-white">
+                                <i class="fas fa-spinner me-1"></i>In Progress
+                            </span>
+                        {% else %}
+                            <span class="status-badge bg-success text-white">
+                                <i class="fas fa-check-circle me-1"></i>Completed
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Task Details -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-info-circle me-2"></i>Task Information</h5>
+                        </div>
+                        <div class="card-body">
+                            <p><strong><i class="fas fa-user me-2"></i>Assigned by:</strong> {{ task.created_by.get_full_name|default:task.created_by.username }}</p>
+                            <p><strong><i class="fas fa-calendar me-2"></i>Due Date:</strong> 
+                                {{ task.due_date|date:"F d, Y" }}
+                                {% if is_overdue %}
+                                    <span class="badge bg-danger ms-2">Overdue</span>
+                                {% endif %}
+                            </p>
+                            <p><strong><i class="fas fa-clock me-2"></i>Created:</strong> {{ task.created_at|date:"F d, Y g:i A" }}</p>
+                            {% if task.updated_at != task.created_at %}
+                                <p><strong><i class="fas fa-edit me-2"></i>Last Updated:</strong> {{ task.updated_at|date:"F d, Y g:i A" }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-cog me-2"></i>Actions</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if task.status == 'completed' %}
+                                <div class="alert alert-success">
+                                    <i class="fas fa-check-circle me-2"></i>
+                                    This task has been completed!
+                                </div>
+                                {% if task.worked_hours %}
+                                    <p><strong>Hours Worked:</strong> {{ task.worked_hours }} hours</p>
+                                {% endif %}
+                            {% else %}
+                                {% if can_start and task.status == 'pending' %}
+                                    <button class="btn btn-primary mb-2 w-100" onclick="updateStatus('in_progress')">
+                                        <i class="fas fa-play me-2"></i>Start Task
+                                    </button>
+                                {% endif %}
+                                
+                                {% if task.status == 'in_progress' %}
+                                    <button class="btn btn-secondary mb-2 w-100" onclick="updateStatus('pending')">
+                                        <i class="fas fa-pause me-2"></i>Move to Pending
+                                    </button>
+                                {% endif %}
+                                
+                                <a href="{% url 'user_complete_task' task.id %}" class="btn btn-success w-100">
+                                    <i class="fas fa-check me-2"></i>Complete Task
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Completion Report (if completed) -->
+            {% if task.status == 'completed' and task.completion_report %}
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-file-alt me-2"></i>Completion Report</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-light">
+                        {{ task.completion_report|linebreaks }}
+                    </div>
+                    {% if task.worked_hours %}
+                        <p><strong>Total Hours Worked:</strong> 
+                            <span class="badge bg-info">{{ task.worked_hours }} hours</span>
+                        </p>
+                    {% endif %}
+                    <small class="text-muted">
+                        Completed on {{ task.updated_at|date:"F d, Y g:i A" }}
+                    </small>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        async function updateStatus(newStatus) {
+            try {
+                const response = await fetch(`{% url 'user_update_task_status' task.id %}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify({ status: newStatus })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    alert(data.message);
+                    location.reload();
+                } else {
+                    alert(data.error || 'Failed to update task status');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to update task status');
+            }
+        }
+    </script>
+</body>
+</html>
