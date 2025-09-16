@@ -151,22 +151,19 @@
                 </h6>
             </div>
             <div class="card-body">
-                {% if task.assigned_to == user and task.status != 'completed' %}
-                    <a href="{% url 'complete_task' task.id %}" class="btn btn-success w-100 mb-2">
-                        <i class="fas fa-check me-2"></i>Mark as Completed
+                <div class="d-grid gap-2">
+                    <a href="{% url 'edit_task' task.id %}" class="btn btn-primary">
+                        <i class="fas fa-edit me-2"></i>Edit Task
                     </a>
-                {% endif %}
-                
-                {% if task.status == 'completed' and task.completion_report %}
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle me-2"></i>
-                        Task has been completed with a report
-                    </div>
-                {% endif %}
-                
-                <a href="{% url 'manage_tasks' %}" class="btn btn-outline-secondary w-100">
-                    <i class="fas fa-list me-2"></i>View All Tasks
-                </a>
+                    <a href="{% url 'delete_task' task.id %}" class="btn btn-danger">
+                        <i class="fas fa-trash me-2"></i>Delete Task
+                    </a>
+                    {% if task.assigned_to == user and task.status != 'completed' %}
+                        <a href="{% url 'complete_task' task.id %}" class="btn btn-success">
+                            <i class="fas fa-check me-2"></i>Mark as Completed
+                        </a>
+                    {% endif %}
+                </div>
             </div>
         </div>
     </div>

@@ -198,46 +198,61 @@ def assign_user_to_admin(request, user_id, admin_id):
     messages.success(request, f'User {user_obj.username} assigned to admin {admin.username}')
     return redirect('manage_users')
 
-# TASK CRUD OPERATIONS
+
 @login_required
 def manage_tasks(request):
     if not (request.user.is_admin() or request.user.is_superadmin()):
         messages.error(request, 'Access denied')
         return redirect('admin_dashboard')
-    
-    # Filter tasks based on user role
+
+    # ✅ Handle form submission
+    if request.method == "POST":
+        form = TaskForm(request.POST, user=request.user)
+        if form.is_valid():
+            task = form.save(commit=False)
+            task.created_by = request.user  # track who created
+            task.save()
+            messages.success(request, "Task created successfully.")
+            return redirect('manage_tasks')  # refresh page
+        else:
+            messages.error(request, "Please correct the errors below.")
+    else:
+        form = TaskForm(user=request.user)
+
+    # Filter tasks
     if request.user.is_superadmin():
         tasks = Task.objects.all()
     else:
-        # Admin can only see tasks they created
         tasks = Task.objects.filter(created_by=request.user)
-    
-    # Search functionality
+
+    # Search & filter
     search = request.GET.get('search')
     if search:
         tasks = tasks.filter(
-            Q(title__icontains=search) | 
+            Q(title__icontains=search) |
             Q(assigned_to__username__icontains=search)
         )
-    
-    # Status filter
+
     status_filter = request.GET.get('status')
     if status_filter:
         tasks = tasks.filter(status=status_filter)
-    
+
     # Pagination
     paginator = Paginator(tasks, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    
+
     context = {
         'page_obj': page_obj,
         'search': search,
         'status_filter': status_filter,
         'status_choices': Task.STATUS_CHOICES,
         'today': date.today(),
+        'form': form,
     }
     return render(request, 'admin/manage_tasks.html', context)
+
+
 
 @login_required
 def create_task(request):

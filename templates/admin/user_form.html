@@ -1,0 +1,253 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}{{ page_title }} - Task Management System{% endblock %}
+
+{% block page_title %}{{ page_title }}{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'manage_users' %}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left me-2"></i>Back to Users
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-user-edit me-2"></i>{{ page_title }}
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <!-- Basic Information -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label for="{{ form.username.id_for_label }}" class="form-label">
+                                <i class="fas fa-user me-2"></i>Username <span class="text-danger">*</span>
+                            </label>
+                            {{ form.username }}
+                            {% if form.username.errors %}
+                                <div class="text-danger mt-1">{{ form.username.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="{{ form.email.id_for_label }}" class="form-label">
+                                <i class="fas fa-envelope me-2"></i>Email Address <span class="text-danger">*</span>
+                            </label>
+                            {{ form.email }}
+                            {% if form.email.errors %}
+                                <div class="text-danger mt-1">{{ form.email.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label for="{{ form.first_name.id_for_label }}" class="form-label">
+                                <i class="fas fa-user me-2"></i>First Name <span class="text-danger">*</span>
+                            </label>
+                            {{ form.first_name }}
+                            {% if form.first_name.errors %}
+                                <div class="text-danger mt-1">{{ form.first_name.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="{{ form.last_name.id_for_label }}" class="form-label">
+                                <i class="fas fa-user me-2"></i>Last Name <span class="text-danger">*</span>
+                            </label>
+                            {{ form.last_name }}
+                            {% if form.last_name.errors %}
+                                <div class="text-danger mt-1">{{ form.last_name.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Role and Assignment -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label for="{{ form.role.id_for_label }}" class="form-label">
+                                <i class="fas fa-shield-alt me-2"></i>Role <span class="text-danger">*</span>
+                            </label>
+                            {{ form.role }}
+                            {% if form.role.errors %}
+                                <div class="text-danger mt-1">{{ form.role.errors.0 }}</div>
+                            {% endif %}
+                            <div class="form-text">
+                                {% if user.is_superadmin %}
+                                    SuperAdmins can create Users, Admins, and SuperAdmins
+                                {% elif user.is_admin %}
+                                    Admins can only create regular Users
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6" id="assigned-admin-field">
+                            <label for="{{ form.assigned_admin.id_for_label }}" class="form-label">
+                                <i class="fas fa-user-shield me-2"></i>Assigned Admin
+                            </label>
+                            {{ form.assigned_admin }}
+                            {% if form.assigned_admin.errors %}
+                                <div class="text-danger mt-1">{{ form.assigned_admin.errors.0 }}</div>
+                            {% endif %}
+                            <div class="form-text">{{ form.assigned_admin.help_text }}</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Password Fields (only for creation) -->
+                    {% if form.password1 %}
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label for="{{ form.password1.id_for_label }}" class="form-label">
+                                <i class="fas fa-lock me-2"></i>Password <span class="text-danger">*</span>
+                            </label>
+                            {{ form.password1 }}
+                            {% if form.password1.errors %}
+                                <div class="text-danger mt-1">{{ form.password1.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="{{ form.password2.id_for_label }}" class="form-label">
+                                <i class="fas fa-lock me-2"></i>Confirm Password <span class="text-danger">*</span>
+                            </label>
+                            {{ form.password2 }}
+                            {% if form.password2.errors %}
+                                <div class="text-danger mt-1">{{ form.password2.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Active Status (only for editing) -->
+                    {% if form.is_active %}
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <div class="form-check">
+                                {{ form.is_active }}
+                                <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                                    <i class="fas fa-toggle-on me-2"></i>User is active
+                                </label>
+                            </div>
+                            <div class="form-text">Inactive users cannot log in to the system</div>
+                            {% if form.is_active.errors %}
+                                <div class="text-danger mt-1">{{ form.is_active.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Form Errors -->
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {% for error in form.non_field_errors %}
+                                <i class="fas fa-exclamation-triangle me-2"></i>{{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    
+                    <!-- Form Actions -->
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% url 'manage_users' %}" class="btn btn-outline-secondary me-md-2">
+                            <i class="fas fa-times me-2"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>{{ submit_text }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Help Card -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-question-circle me-2"></i>User Roles Explained
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <i class="fas fa-crown fa-2x text-warning mb-2"></i>
+                            <h6>SuperAdmin</h6>
+                            <ul class="list-unstyled small">
+                                <li>• Manage all users</li>
+                                <li>• Create admins</li>
+                                <li>• Full system access</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <i class="fas fa-user-shield fa-2x text-primary mb-2"></i>
+                            <h6>Admin</h6>
+                            <ul class="list-unstyled small">
+                                <li>• Manage assigned users</li>
+                                <li>• Create and assign tasks</li>
+                                <li>• View task reports</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <i class="fas fa-user fa-2x text-success mb-2"></i>
+                            <h6>User</h6>
+                            <ul class="list-unstyled small">
+                                <li>• Complete assigned tasks</li>
+                                <li>• Submit task reports</li>
+                                <li>• Must be assigned to admin</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const roleField = document.getElementById('id_role');
+    const assignedAdminField = document.getElementById('assigned-admin-field');
+    
+    function toggleAssignedAdminField() {
+        if (roleField && assignedAdminField) {
+            if (roleField.value === 'user') {
+                assignedAdminField.style.display = 'block';
+                assignedAdminField.querySelector('select').required = true;
+            } else {
+                assignedAdminField.style.display = 'none';
+                assignedAdminField.querySelector('select').required = false;
+            }
+        }
+    }
+    
+    if (roleField) {
+        roleField.addEventListener('change', toggleAssignedAdminField);
+        toggleAssignedAdminField(); // Initial call
+    }
+    
+    // Form validation
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(e) {
+        const role = document.getElementById('id_role').value;
+        const assignedAdmin = document.getElementById('id_assigned_admin').value;
+        
+        if (role === 'user' && !assignedAdmin) {
+            e.preventDefault();
+            alert('Please assign an admin for this user.');
+            return false;
+        }
+    });
+});
+</script>
+{% endblock %}
