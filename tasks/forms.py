@@ -6,7 +6,8 @@ class UserCreationForm(BaseUserCreationForm):
     email = forms.EmailField(required=True)
     first_name = forms.CharField(max_length=30, required=True)
     last_name = forms.CharField(max_length=30, required=True)
-    role = forms.ChoiceField(choices=[('user', 'User'), ('admin', 'Admin')], required=True)
+    # Use the same choices as the model
+    role = forms.ChoiceField(choices=User.ROLE_CHOICES, required=True)
     assigned_admin = forms.ModelChoiceField(
         queryset=User.objects.filter(role='admin'), 
         required=False,
@@ -18,7 +19,11 @@ class UserCreationForm(BaseUserCreationForm):
         fields = ('username', 'email', 'first_name', 'last_name', 'password1', 'password2', 'role', 'assigned_admin')
 
     def __init__(self, *args, **kwargs):
+        # Get the current user to determine available role choices
+        current_user = kwargs.pop('current_user', None)
         super().__init__(*args, **kwargs)
+        
+        # Apply CSS classes
         self.fields['username'].widget.attrs.update({'class': 'form-control'})
         self.fields['email'].widget.attrs.update({'class': 'form-control'})
         self.fields['first_name'].widget.attrs.update({'class': 'form-control'})
@@ -28,6 +33,18 @@ class UserCreationForm(BaseUserCreationForm):
         self.fields['role'].widget.attrs.update({'class': 'form-control'})
         self.fields['assigned_admin'].widget.attrs.update({'class': 'form-control'})
 
+        # Limit role choices based on current user
+        if current_user:
+            if current_user.is_superadmin():
+                # SuperAdmin can create all types of users
+                self.fields['role'].choices = User.ROLE_CHOICES
+            elif current_user.is_admin():
+                # Admin can only create regular users
+                self.fields['role'].choices = [('user', 'User')]
+            else:
+                # Regular users cannot create accounts
+                self.fields['role'].choices = []
+
     def clean(self):
         cleaned_data = super().clean()
         role = cleaned_data.get('role')
@@ -36,7 +53,7 @@ class UserCreationForm(BaseUserCreationForm):
         if role == 'user' and not assigned_admin:
             raise forms.ValidationError("Users must be assigned to an admin")
         
-        if role == 'admin' and assigned_admin:
+        if role in ['admin', 'superadmin'] and assigned_admin:
             cleaned_data['assigned_admin'] = None
 
         return cleaned_data

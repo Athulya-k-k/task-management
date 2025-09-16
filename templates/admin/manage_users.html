@@ -65,9 +65,16 @@
                         {% if form.role.errors %}
                             <div class="text-danger">{{ form.role.errors.0 }}</div>
                         {% endif %}
+                        <div class="form-text">
+                            {% if user.is_superadmin %}
+                                You can create Users, Admins, and SuperAdmins
+                            {% elif user.is_admin %}
+                                You can only create Users
+                            {% endif %}
+                        </div>
                     </div>
                     
-                    <div class="mb-3">
+                    <div class="mb-3" id="assigned-admin-field">
                         <label for="{{ form.assigned_admin.id_for_label }}" class="form-label">Assign to Admin (for Users only)</label>
                         {{ form.assigned_admin }}
                         {% if form.assigned_admin.errors %}
@@ -91,6 +98,14 @@
                             <div class="text-danger">{{ form.password2.errors.0 }}</div>
                         {% endif %}
                     </div>
+
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {% for error in form.non_field_errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -102,6 +117,64 @@
         </div>
     </div>
 </div>
+
+<!-- SuperAdmins Section (only visible to SuperAdmins) -->
+{% if user.is_superadmin %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-crown me-2 text-warning"></i>SuperAdministrators</h5>
+            </div>
+            <div class="card-body">
+                {% with superadmins=users.none %}
+                    {% comment %}Get SuperAdmins - we need to query them separately{% endcomment %}
+                    {% if superadmins %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Username</th>
+                                        <th>Full Name</th>
+                                        <th>Email</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for superadmin in superadmins %}
+                                    <tr>
+                                        <td>
+                                            <i class="fas fa-crown text-warning me-2"></i>
+                                            {{ superadmin.username }}
+                                        </td>
+                                        <td>{{ superadmin.first_name }} {{ superadmin.last_name }}</td>
+                                        <td>{{ superadmin.email }}</td>
+                                        <td>
+                                            {% if superadmin != user %}
+                                                <button class="btn btn-danger btn-sm" onclick="deleteUser({{ superadmin.id }}, '{{ superadmin.username }}')">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            {% else %}
+                                                <span class="text-muted">(Current User)</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center text-muted">
+                            <i class="fas fa-crown fa-3x mb-3 text-warning"></i>
+                            <p>Only you as SuperAdmin</p>
+                        </div>
+                    {% endif %}
+                {% endwith %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 
 <!-- Admins Section -->
 <div class="row mb-4">
@@ -177,17 +250,17 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for user in users %}
+                                {% for user_item in users %}
                                 <tr>
                                     <td>
                                         <i class="fas fa-user text-success me-2"></i>
-                                        {{ user.username }}
+                                        {{ user_item.username }}
                                     </td>
-                                    <td>{{ user.first_name }} {{ user.last_name }}</td>
-                                    <td>{{ user.email }}</td>
+                                    <td>{{ user_item.first_name }} {{ user_item.last_name }}</td>
+                                    <td>{{ user_item.email }}</td>
                                     <td>
-                                        {% if user.assigned_admin %}
-                                            <span class="badge bg-primary">{{ user.assigned_admin.username }}</span>
+                                        {% if user_item.assigned_admin %}
+                                            <span class="badge bg-primary">{{ user_item.assigned_admin.username }}</span>
                                         {% else %}
                                             <span class="text-muted">Not assigned</span>
                                             <div class="dropdown d-inline">
@@ -197,7 +270,7 @@
                                                 <ul class="dropdown-menu">
                                                     {% for admin in admins %}
                                                     <li>
-                                                        <a class="dropdown-item" href="{% url 'assign_user_to_admin' user.id admin.id %}">
+                                                        <a class="dropdown-item" href="{% url 'assign_user_to_admin' user_item.id admin.id %}">
                                                             {{ admin.username }}
                                                         </a>
                                                     </li>
@@ -207,7 +280,7 @@
                                         {% endif %}
                                     </td>
                                     <td>
-                                        <button class="btn btn-danger btn-sm" onclick="deleteUser({{ user.id }}, '{{ user.username }}')">
+                                        <button class="btn btn-danger btn-sm" onclick="deleteUser({{ user_item.id }}, '{{ user_item.username }}')">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </td>
@@ -240,11 +313,20 @@ function deleteUser(userId, username) {
 }
 
 // Show/hide assigned admin field based on role selection
-document.getElementById('id_role').addEventListener('change', function() {
-    const assignedAdminField = document.getElementById('id_assigned_admin').closest('.mb-3');
-    if (this.value === 'user') {
-        assignedAdminField.style.display = 'block';
-    } else {
-        assignedAdminField.style.display = 'none';
+document.addEventListener('DOMContentLoaded', function() {
+    const roleField = document.getElementById('id_role');
+    const assignedAdminField = document.getElementById('assigned-admin-field');
+    
+    function toggleAssignedAdminField() {
+        if (roleField.value === 'user') {
+            assignedAdminField.style.display = 'block';
+        } else {
+            assignedAdminField.style.display = 'none';
+        }
     }
+    
+    roleField.addEventListener('change', toggleAssignedAdminField);
+    toggleAssignedAdminField(); // Initial call
 });
+</script>
+{% endblock %}

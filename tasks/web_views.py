@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Q
+from datetime import date
 from .models import User, Task
 from .forms import UserCreationForm, TaskForm, TaskCompletionForm
 
@@ -37,6 +38,7 @@ def dashboard(request):
         'admin_count': User.objects.filter(role='admin').count(),
         'total_tasks': Task.objects.all().count(),
         'completed_tasks': Task.objects.filter(status='completed').count(),
+        'today': date.today(),
     }
     
     if request.user.is_admin():
@@ -57,13 +59,19 @@ def manage_users(request):
     admins = User.objects.filter(role='admin')
     
     if request.method == 'POST':
-        form = UserCreationForm(request.POST)
+        # Pass the current user to the form
+        form = UserCreationForm(request.POST, current_user=request.user)
         if form.is_valid():
             user = form.save()
             messages.success(request, f'User {user.username} created successfully')
             return redirect('manage_users')
+        else:
+            # Add form errors to messages
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f'{field}: {error}')
     else:
-        form = UserCreationForm()
+        form = UserCreationForm(current_user=request.user)
     
     context = {
         'users': users,
@@ -80,8 +88,9 @@ def delete_user(request, user_id):
     
     user = get_object_or_404(User, id=user_id)
     if user != request.user:
+        username = user.username
         user.delete()
-        messages.success(request, 'User deleted successfully')
+        messages.success(request, f'User {username} deleted successfully')
     else:
         messages.error(request, 'Cannot delete yourself')
     
@@ -141,6 +150,11 @@ def manage_tasks(request):
             task.save()
             messages.success(request, 'Task created successfully')
             return redirect('manage_tasks')
+        else:
+            # Add form errors to messages
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f'{field}: {error}')
     else:
         form = TaskForm(user=request.user)
     
@@ -150,6 +164,7 @@ def manage_tasks(request):
         'search': search,
         'status_filter': status_filter,
         'status_choices': Task.STATUS_CHOICES,
+        'today': date.today(),
     }
     return render(request, 'admin/manage_tasks.html', context)
 
@@ -162,7 +177,11 @@ def view_task(request, task_id):
         messages.error(request, 'Access denied')
         return redirect('manage_tasks')
     
-    return render(request, 'admin/view_task.html', {'task': task})
+    context = {
+        'task': task,
+        'today': date.today(),
+    }
+    return render(request, 'admin/view_task.html', context)
 
 @login_required
 def complete_task(request, task_id):
@@ -181,6 +200,11 @@ def complete_task(request, task_id):
             task.save()
             messages.success(request, 'Task completed successfully')
             return redirect('manage_tasks')
+        else:
+            # Add form errors to messages
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f'{field}: {error}')
     else:
         form = TaskCompletionForm(instance=task)
     
