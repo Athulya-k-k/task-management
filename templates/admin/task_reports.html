@@ -1,0 +1,236 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Task Reports - Task Management System{% endblock %}
+
+{% block page_title %}Task Completion Reports{% endblock %}
+
+{% block content %}
+<!-- Search and Filter -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-6">
+                <input type="text" name="search" class="form-control" placeholder="Search by task title or assigned user..." value="{{ search }}">
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-outline-primary w-100">
+                    <i class="fas fa-search me-2"></i>Search
+                </button>
+            </div>
+            <div class="col-md-3">
+                <a href="{% url 'task_reports' %}" class="btn btn-outline-secondary w-100">
+                    <i class="fas fa-times me-2"></i>Clear
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Reports -->
+<div class="card">
+    <div class="card-header">
+        <h6 class="mb-0">
+            <i class="fas fa-chart-bar me-2"></i>Completed Tasks with Reports
+        </h6>
+    </div>
+    <div class="card-body">
+        {% if page_obj %}
+            {% for task in page_obj %}
+                <div class="card mb-3 border-left-success">
+                    <div class="card-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1">
+                                    <i class="fas fa-check-circle text-success me-2"></i>
+                                    {{ task.title }}
+                                </h6>
+                                <div class="d-flex flex-wrap gap-2">
+                                    <span class="badge bg-info">
+                                        <i class="fas fa-user me-1"></i>{{ task.assigned_to.username }}
+                                    </span>
+                                    <span class="badge bg-secondary">
+                                        <i class="fas fa-calendar me-1"></i>{{ task.due_date|date:"M d, Y" }}
+                                    </span>
+                                    <span class="badge bg-warning text-dark">
+                                        <i class="fas fa-clock me-1"></i>{{ task.worked_hours }} hours
+                                    </span>
+                                </div>
+                            </div>
+                            <div>
+                                <small class="text-muted">
+                                    Completed: {{ task.updated_at|date:"M d, Y \a\t g:i A" }}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <h6><i class="fas fa-file-alt me-2"></i>Completion Report</h6>
+                                <div class="bg-light p-3 rounded">
+                                    {{ task.completion_report|linebreaks }}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <h6><i class="fas fa-info-circle me-2"></i>Task Details</h6>
+                                <p><strong>Description:</strong><br>
+                                {% if task.description|length > 100 %}
+                                    {{ task.description|truncatechars:100 }}
+                                    <a href="#" class="text-primary" onclick="toggleDescription({{ task.id }})">Read more</a>
+                                    <div id="full-desc-{{ task.id }}" style="display: none;">
+                                        {{ task.description|linebreaks }}
+                                        <a href="#" class="text-primary" onclick="toggleDescription({{ task.id }})">Show less</a>
+                                    </div>
+                                {% else %}
+                                    {{ task.description }}
+                                {% endif %}
+                                </p>
+                                
+                                <div class="mt-3">
+                                    <small class="text-muted">
+                                        <i class="fas fa-user-shield me-1"></i>
+                                        Created by: {{ task.created_by.username }}
+                                    </small>
+                                </div>
+                                
+                                <div class="mt-2">
+                                    <small class="text-muted">
+                                        <i class="fas fa-envelope me-1"></i>
+                                        {{ task.assigned_to.email }}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+
+            <!-- Pagination -->
+            {% if page_obj.has_other_pages %}
+                <nav aria-label="Reports pagination">
+                    <ul class="pagination justify-content-center">
+                        {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page=1{% if search %}&search={{ search }}{% endif %}">
+                                    First
+                                </a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search }}{% endif %}">
+                                    Previous
+                                </a>
+                            </li>
+                        {% endif %}
+
+                        <li class="page-item active">
+                            <span class="page-link">
+                                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                            </span>
+                        </li>
+
+                        {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search }}{% endif %}">
+                                    Next
+                                </a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search %}&search={{ search }}{% endif %}">
+                                    Last
+                                </a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            {% endif %}
+        {% else %}
+            <div class="text-center text-muted py-5">
+                <i class="fas fa-file-alt fa-3x mb-3"></i>
+                <h5>No Completed Tasks Found</h5>
+                {% if search %}
+                    <p>No tasks match your search criteria.</p>
+                    <a href="{% url 'task_reports' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-eye me-2"></i>View All Reports
+                    </a>
+                {% else %}
+                    <p>No tasks have been completed yet with reports.</p>
+                    <a href="{% url 'manage_tasks' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-tasks me-2"></i>View All Tasks
+                    </a>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Summary Card -->
+{% if page_obj %}
+<div class="card mt-4">
+    <div class="card-header">
+        <h6 class="mb-0">
+            <i class="fas fa-chart-line me-2"></i>Summary Statistics
+        </h6>
+    </div>
+    <div class="card-body">
+        <div class="row text-center">
+            <div class="col-md-3">
+                <div class="border-end">
+                    <h4 class="text-primary">{{ page_obj.paginator.count }}</h4>
+                    <small class="text-muted">Total Completed Tasks</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="border-end">
+                    {% if page_obj %}
+                        {% comment %}Calculate total hours{% endcomment %}
+                        <h4 class="text-success">
+                            {{ page_obj|length }}
+                        </h4>
+                        <small class="text-muted">Tasks This Page</small>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="border-end">
+                    <h4 class="text-warning">
+                        {% comment %}Average completion time could be calculated here{% endcomment %}
+                        <i class="fas fa-chart-bar"></i>
+                    </h4>
+                    <small class="text-muted">Productivity Tracking</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <h4 class="text-info">
+                    <i class="fas fa-users"></i>
+                </h4>
+                <small class="text-muted">Team Performance</small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleDescription(taskId) {
+    const fullDesc = document.getElementById('full-desc-' + taskId);
+    const isVisible = fullDesc.style.display !== 'none';
+    
+    if (isVisible) {
+        fullDesc.style.display = 'none';
+    } else {
+        fullDesc.style.display = 'block';
+    }
+    
+    // Hide the truncated version when showing full
+    const parentP = fullDesc.parentElement;
+    const truncatedText = parentP.childNodes[1]; // The truncated text node
+    if (!isVisible && truncatedText) {
+        truncatedText.style.display = 'none';
+    } else if (isVisible && truncatedText) {
+        truncatedText.style.display = 'inline';
+    }
+}
+</script>
+{% endblock %}

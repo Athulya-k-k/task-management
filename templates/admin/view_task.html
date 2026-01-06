@@ -1,0 +1,198 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}{{ task.title }} - Task Management System{% endblock %}
+
+{% block page_title %}Task Details{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'manage_tasks' %}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left me-2"></i>Back to Tasks
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>Task Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-sm-3">
+                        <strong>Title:</strong>
+                    </div>
+                    <div class="col-sm-9">
+                        {{ task.title }}
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-sm-3">
+                        <strong>Description:</strong>
+                    </div>
+                    <div class="col-sm-9">
+                        {{ task.description|linebreaks }}
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-sm-3">
+                        <strong>Assigned To:</strong>
+                    </div>
+                    <div class="col-sm-9">
+                        <span class="badge bg-info">{{ task.assigned_to.username }}</span>
+                        <br>
+                        <small class="text-muted">
+                            {{ task.assigned_to.first_name }} {{ task.assigned_to.last_name }}
+                            <br>{{ task.assigned_to.email }}
+                        </small>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-sm-3">
+                        <strong>Created By:</strong>
+                    </div>
+                    <div class="col-sm-9">
+                        <span class="badge bg-secondary">{{ task.created_by.username }}</span>
+                        <br>
+                        <small class="text-muted">
+                            {{ task.created_by.first_name }} {{ task.created_by.last_name }}
+                        </small>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-sm-3">
+                        <strong>Status:</strong>
+                    </div>
+                    <div class="col-sm-9">
+                        {% if task.status == 'pending' %}
+                            <span class="badge bg-warning">Pending</span>
+                        {% elif task.status == 'in_progress' %}
+                            <span class="badge bg-primary">In Progress</span>
+                        {% elif task.status == 'completed' %}
+                            <span class="badge bg-success">Completed</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-sm-3">
+                        <strong>Due Date:</strong>
+                    </div>
+                    <div class="col-sm-9">
+                        {{ task.due_date|date:"F d, Y" }}
+                        {% if task.due_date < today and task.status != 'completed' %}
+                            <span class="badge bg-danger ms-2">Overdue</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-sm-3">
+                        <strong>Created:</strong>
+                    </div>
+                    <div class="col-sm-9">
+                        {{ task.created_at|date:"F d, Y \a\t g:i A" }}
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-sm-3">
+                        <strong>Last Updated:</strong>
+                    </div>
+                    <div class="col-sm-9">
+                        {{ task.updated_at|date:"F d, Y \a\t g:i A" }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <!-- Task Status Card -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-chart-line me-2"></i>Task Status
+                </h6>
+            </div>
+            <div class="card-body text-center">
+                {% if task.status == 'pending' %}
+                    <i class="fas fa-clock fa-3x text-warning mb-3"></i>
+                    <h5 class="text-warning">Pending</h5>
+                    <p class="text-muted">Task is waiting to be started</p>
+                {% elif task.status == 'in_progress' %}
+                    <i class="fas fa-spinner fa-3x text-primary mb-3"></i>
+                    <h5 class="text-primary">In Progress</h5>
+                    <p class="text-muted">Task is currently being worked on</p>
+                {% elif task.status == 'completed' %}
+                    <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                    <h5 class="text-success">Completed</h5>
+                    <p class="text-muted">Task has been finished</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Actions Card -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-cogs me-2"></i>Available Actions
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'edit_task' task.id %}" class="btn btn-primary">
+                        <i class="fas fa-edit me-2"></i>Edit Task
+                    </a>
+                    <a href="{% url 'delete_task' task.id %}" class="btn btn-danger">
+                        <i class="fas fa-trash me-2"></i>Delete Task
+                    </a>
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Completion Report Section (if task is completed) -->
+{% if task.status == 'completed' and task.completion_report %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-file-alt me-2"></i>Completion Report
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-sm-2">
+                            <strong>Worked Hours:</strong>
+                        </div>
+                        <div class="col-sm-10">
+                            <span class="badge bg-info fs-6">{{ task.worked_hours }} hours</span>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-sm-2">
+                            <strong>Report:</strong>
+                        </div>
+                        <div class="col-sm-10">
+                            <div class="p-3 bg-light rounded">
+                                {{ task.completion_report|linebreaks }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}

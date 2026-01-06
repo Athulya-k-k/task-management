@@ -1,0 +1,160 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Delete Task - {{ task.title }}{% endblock %}
+
+{% block page_title %}Delete Task{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'manage_tasks' %}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left me-2"></i>Back to Tasks
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Confirm Task Deletion
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-danger">
+                    <i class="fas fa-warning me-2"></i>
+                    <strong>Warning!</strong> This action cannot be undone. The task and all associated data will be permanently deleted.
+                </div>
+                
+                <!-- Task Details -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="fas fa-info-circle me-2"></i>Task Details
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-2">
+                            <div class="col-sm-4"><strong>Title:</strong></div>
+                            <div class="col-sm-8">{{ task.title }}</div>
+                        </div>
+                        <div class="row mb-2">
+                            <div class="col-sm-4"><strong>Description:</strong></div>
+                            <div class="col-sm-8">
+                                {% if task.description|length > 100 %}
+                                    {{ task.description|truncatechars:100 }}
+                                {% else %}
+                                    {{ task.description }}
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="row mb-2">
+                            <div class="col-sm-4"><strong>Assigned To:</strong></div>
+                            <div class="col-sm-8">
+                                <span class="badge bg-info">{{ task.assigned_to.username }}</span>
+                                <br><small class="text-muted">{{ task.assigned_to.first_name }} {{ task.assigned_to.last_name }}</small>
+                            </div>
+                        </div>
+                        <div class="row mb-2">
+                            <div class="col-sm-4"><strong>Status:</strong></div>
+                            <div class="col-sm-8">
+                                {% if task.status == 'pending' %}
+                                    <span class="badge bg-warning">Pending</span>
+                                {% elif task.status == 'in_progress' %}
+                                    <span class="badge bg-primary">In Progress</span>
+                                {% elif task.status == 'completed' %}
+                                    <span class="badge bg-success">Completed</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="row mb-2">
+                            <div class="col-sm-4"><strong>Due Date:</strong></div>
+                            <div class="col-sm-8">{{ task.due_date|date:"F d, Y" }}</div>
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-4"><strong>Created:</strong></div>
+                            <div class="col-sm-8">{{ task.created_at|date:"F d, Y" }} by {{ task.created_by.username }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Impact Assessment -->
+                {% if task.status == 'completed' %}
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Additional Warning:</strong> This task has been completed and contains completion data:
+                    <ul class="mt-2 mb-0">
+                        {% if task.completion_report %}
+                            <li>Completion report will be lost</li>
+                        {% endif %}
+                        {% if task.worked_hours %}
+                            <li>{{ task.worked_hours }} worked hours will be deleted</li>
+                        {% endif %}
+                        <li>Historical completion data will be removed</li>
+                    </ul>
+                </div>
+                {% endif %}
+
+                <!-- Confirmation Form -->
+                <form method="post" class="text-center">
+                    {% csrf_token %}
+                    
+                    <p class="mb-4">
+                        <strong>Are you sure you want to delete the task "{{ task.title }}"?</strong>
+                    </p>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                        <a href="{% url 'manage_tasks' %}" class="btn btn-outline-secondary me-md-2">
+                            <i class="fas fa-times me-2"></i>Cancel
+                        </a>
+                        <a href="{% url 'view_task' task.id %}" class="btn btn-outline-info me-md-2">
+                            <i class="fas fa-eye me-2"></i>View Task
+                        </a>
+                        <button type="submit" class="btn btn-danger" onclick="return confirmDeletion()">
+                            <i class="fas fa-trash me-2"></i>Yes, Delete Task
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Information Card -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>What happens when you delete this task?
+                </h6>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-2">
+                        <i class="fas fa-tasks text-primary me-2"></i>
+                        The task will be permanently removed from the system
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-history text-secondary me-2"></i>
+                        All task history and tracking information will be lost
+                    </li>
+                    {% if task.status == 'completed' %}
+                    <li class="mb-2">
+                        <i class="fas fa-file-alt text-warning me-2"></i>
+                        The completion report and worked hours data will be deleted
+                    </li>
+                    {% endif %}
+                    <li class="mb-0">
+                        <i class="fas fa-undo text-muted me-2"></i>
+                        This action cannot be reversed
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function confirmDeletion() {
+    return confirm('This action is irreversible. Are you absolutely sure you want to delete this task?');
+}
+</script>
+{% endblock %}
